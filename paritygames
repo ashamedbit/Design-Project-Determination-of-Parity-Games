@@ -1,0 +1,492 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define arr map<int,int>
+#define yno map<int,bool>
+
+
+pair< pair<  unordered_set<int>,map<int,int> >,pair<  unordered_set<int>,map<int,int> > > winningregion(vector<int> &priority,vector<bool>& belongs,map<int,vector<int>> adj);
+pair<unordered_set<int>, map<int,int> > winopponent(vector<int> priority,vector<bool>& belongs,map<int,vector<int> > next,int p,int n);
+
+void recurse(int &p,arr& strategy,vector<bool>& belongs,unordered_set<int>& winner,yno& visited,map<int,vector<int>> &rev,arr& counter,int x )
+{
+
+	for(int i=0;i<rev[x].size();i++)
+	if(visited[rev[x][i]]==0)
+	{
+		if(belongs[rev[x][i]]==p)
+		{
+			winner.insert(rev[x][i]);
+			strategy[rev[x][i]]=x;
+			visited[rev[x][i]]=1;
+			recurse(p,strategy,belongs,winner,visited,rev,counter,rev[x][i]);
+		}
+		else
+		{
+			counter[rev[x][i]]--;
+
+			if(counter[rev[x][i]]==0)
+			{
+				winner.insert(rev[x][i]);
+				strategy[rev[x][i]]=x;
+				visited[rev[x][i]]=1;
+				recurse(p,strategy,belongs,winner,visited,rev,counter,rev[x][i]);
+			}
+
+		}
+
+	}
+
+
+}
+
+
+pair< unordered_set<int> , map<int,int>  > attractor(vector<bool> &belongs,map<int ,vector<int> > &next,unordered_set<int>& start,int p)
+{
+	unordered_set<int> winner;
+
+
+	map<int,bool> visited;
+
+	map<int,int> strategy;
+
+	map<int,int> counter;
+
+
+	map<int,vector<int> > rev;
+
+		for(auto it =next.begin();it!=next.end();it++)
+		{
+			int i=it->first;
+			for(int j=0;j<next[i].size();j++)
+			{
+				
+				rev[next[i][j]].push_back(i);
+
+				if(belongs[i]==1-p)
+					counter[i]=next[i].size();
+				
+			}
+		}
+
+
+
+	if(start.size()==0)
+	{
+
+		for(auto it =next.begin();it!=next.end();it++)
+		{
+			int i=it->first;
+			//cout<<i<<" "<<belongs[i]<<" "<<next.count(i)<<endl;
+			if(belongs[i]==1-p  && next[i].size()==0)
+			{
+
+				winner.insert(i);
+				visited[i]=1;
+			}
+		}
+
+
+		for(auto it =next.begin();it!=next.end();it++)
+		{
+			int i=it->first;
+			if(belongs[i]==1-p  && next[i].size()==0)
+				recurse(p,strategy,belongs,winner,visited,rev,counter,i);
+			
+		}
+
+
+	}
+
+	else
+	{
+		for(auto it=start.begin() ;it!=start.end();it++)
+		{
+			int i=*it;
+			visited[i]=1;
+			winner.insert(i);
+		}
+
+		for(auto it=start.begin() ;it!=start.end();it++)
+		recurse(p,strategy,belongs,winner,visited,rev,counter,*it);
+
+	}
+	
+
+		// for(auto it =strategy.begin();it!=strategy.end();it++)
+		// {
+		// 	int i=it->first;
+		// 	cout<<i<<" "<<winner.count(i)<<" "<<strategy[i]<<endl;
+		// }
+
+		return make_pair(winner,strategy);
+}
+
+map<int,vector<int>> transform(map< int,vector<int> > adj,unordered_set<int> mark)
+{
+
+	map<int,vector<int>> newadj;
+	vector<int> temp;
+
+	for(auto it=adj.begin();it!=adj.end();it++)
+	{
+		int i=it->first;
+		
+		if(mark.count(i)==0)
+		{
+			newadj[i]=temp;
+
+			for(int j=0;j<adj[i].size();j++)
+			if(mark.count(adj[i][j])==0)
+				newadj[i].push_back(adj[i][j]);
+		}
+	}	
+
+	/*
+	for(auto it=adj.begin();it!=adj.end();it++)
+	{
+		int i=it->first;
+		cout<<i<<" ";
+		for(int j=0;j<adj[i].size();j++)
+			cout<<adj[i][j]<<" ";
+
+		cout<<endl;
+	}
+
+	cout<<" new "<<endl;
+
+	for(auto it=newadj.begin();it!=newadj.end();it++)
+	{
+		int i=it->first;
+		cout<<i<<" ";
+		for(int j=0;j<newadj[i].size();j++)
+			cout<<newadj[i][j]<<" ";
+
+		cout<<endl;
+	}
+	*/	
+
+		return newadj;
+		
+
+}
+
+
+pair< pair<  unordered_set<int>,map<int,int> >,pair<  unordered_set<int>,map<int,int> > > winningregion(vector<int> &priority,vector<bool>& belongs,map<int,vector<int>> adj)
+{
+	unordered_set <int> W0,W1,Z0,Z1;
+	map<int,int> w0,w1,z0,z1;
+	int n=INT_MIN;
+	unordered_set<int> empty;
+	for(auto it=adj.begin();it!=adj.end();it++)
+	{
+		int i=it->first;
+		n=max(n,priority[i]);
+	}
+
+	if(n==INT_MIN)
+		return pair< pair<  unordered_set<int>,map<int,int> >,pair<  unordered_set<int>,map<int,int> > >();
+
+	if(n==0)
+	{
+
+		pair<unordered_set<int>,map<int,int> > K=attractor(belongs,adj,empty,1);
+		W1=K.first;
+		w1=K.second;
+		
+
+		for(auto it=adj.begin();it!=adj.end();it++)
+		{
+			int i=it->first;
+			if(W1.count(i)==0)
+				W0.insert(i);
+		}
+
+		for(auto it=W0.begin();it!=W0.end();it++)
+		{
+			int i=*it;
+			if(belongs[i]==0 && adj[i].size()>0)
+			w0[i]=adj[i][0];
+
+		}
+
+		return make_pair(make_pair(W0,w0),make_pair(W1,w1));
+
+	}
+
+	int p=n%2;
+
+
+	
+	
+
+
+	pair<unordered_set<int>, map<int,int> > H=winopponent(priority,belongs,adj,p,n);
+
+	if(p==0)
+	{
+		W1=H.first;
+		w1=H.second;
+
+		map<int,vector<int>> W0adj=transform(adj,W1);
+		
+		unordered_set<int> N;
+
+		for(auto it=W0adj.begin();it!=W0adj.end();it++)
+		{
+			int i=it->first;
+			if(priority[i]==n)
+				N.insert(i);
+
+			W0.insert(i);
+		}		
+
+		pair<unordered_set<int>,map<int,int> > U=attractor(belongs,W0adj,N,0);
+		unordered_set<int> attrN=U.first;
+		map<int,int> attrNstrat=U.second;
+
+		map<int,vector<int>> Z=transform(W0adj,attrN);
+
+		pair< pair<  unordered_set<int>,map<int,int> >,pair<  unordered_set<int>,map<int,int> > > R=winningregion(priority,belongs,Z);
+
+		Z0=R.first.first;
+		z0=R.first.second;
+
+		Z1=R.second.first;
+		z1=R.second.second;
+
+		for(auto it=attrN.begin();it!=attrN.end();++it)
+		{
+			int i=*it;
+			if(belongs[i]==0 && attrNstrat.count(i)>0)
+				z0[i]=attrNstrat[i];
+			else if( belongs[i]==0 && attrNstrat.count(i)==0 && adj.count(i)>0)
+				for(int j=0;j<adj[i].size();j++)
+				if(W0.count(adj[i][j])>0)
+					z0[i]=adj[i][j];
+				
+		}
+
+		w0=z0;
+
+	}
+	else
+	{
+		W0=H.first;
+		w0=H.second;
+
+	
+
+		map<int,vector<int>> W1adj=transform(adj,W0);
+		
+		unordered_set<int> N;
+
+		for(auto it=W1adj.begin();it!=W1adj.end();it++)
+		{
+			int i=it->first;
+			if(priority[i]==n)
+				N.insert(i);
+
+			W1.insert(i);
+		}		
+
+		pair<unordered_set<int>,map<int,int> > U=attractor(belongs,W1adj,N,1);
+		unordered_set<int> attrN=U.first;
+		map<int,int> attrNstrat=U.second;
+
+		map<int,vector<int>> Z=transform(W1adj,attrN);
+
+		pair< pair<  unordered_set<int>,map<int,int> >,pair<  unordered_set<int>,map<int,int> > > R=winningregion(priority,belongs,Z);
+
+		Z0=R.first.first;
+		z0=R.first.second;
+
+		Z1=R.second.first;
+		z1=R.second.second;
+
+		for(auto it=attrN.begin();it!=attrN.end();++it)
+		{
+			int i=*it;
+			if(belongs[i]==1 && attrNstrat.count(i)>0)
+				z1[i]=attrNstrat[i];
+			else if( belongs[i]==1 && attrNstrat.count(i)==0 && adj.count(i)>0)
+				for(int j=0;j<adj[i].size();j++)
+				if(W1.count(adj[i][j])>0)
+					z1[i]=adj[i][j];
+				
+		}
+
+		w1=z1;
+	}
+
+
+	return make_pair(make_pair(W0,w0),make_pair(W1,w1));
+
+
+}
+
+
+pair<unordered_set<int>, map<int,int> > winopponent(vector<int> priority,vector<bool>& belongs,map<int,vector<int> > next,int p,int n)
+{
+
+	unordered_set<int> oppwin;
+	map<int,int> oppstrat;
+	int change=0;
+
+	do{
+
+		change=0;
+
+
+
+		map<int,int> attrstrategy;
+		pair<unordered_set<int>,map<int,int> >T;
+		T=attractor(belongs,next,oppwin,1-p);
+		oppwin=T.first;
+		attrstrategy=T.second;
+
+		
+
+
+		for(auto it=attrstrategy.begin();it!=attrstrategy.end();it++)
+		{
+			int i=it->first;
+			if(belongs[i]==1-p)
+			{
+				change=1;	
+				oppstrat[i] =attrstrategy[i];
+			}
+		}
+
+		map<int,vector<int>> subgamey=transform(next,oppwin);
+
+		unordered_set<int> N;
+
+		for(auto it=subgamey.begin();it!=subgamey.end();it++)
+		{
+			int i=it->first;
+			if(priority[i]==n)
+				N.insert(i);
+		}
+
+
+
+
+		T=attractor(belongs,subgamey,N,p);
+		unordered_set<int> attrN=T.first;
+	
+
+		map<int,vector<int>> subgamez=transform(subgamey,attrN);		
+
+
+		pair< pair<  unordered_set<int>,map<int,int> >,pair<  unordered_set<int>,map<int,int> > > B=winningregion(priority,belongs,subgamez);
+
+		unordered_set<int> Z0=B.first.first;
+		map <int,int> z0=B.first.second;
+
+		unordered_set<int> Z1=B.second.first;
+		map <int,int> z1=B.second.second;
+
+
+		if(p==0)
+		{
+			for(auto it=Z1.begin();it!=Z1.end();it++)
+				{
+					int i=*it;
+					change=1;
+					oppwin.insert(i);
+
+					if(belongs[i]==1)
+						oppstrat[i]=z1[i];
+				}
+		}
+		else
+		{
+				for(auto it=Z0.begin();it!=Z0.end();it++)
+				{
+					int i=*it;
+					change=1;
+					oppwin.insert(i);
+
+					if(belongs[i]==0)
+						oppstrat[i]=z0[i];
+				}	
+		}
+
+
+
+
+	}while(change==1);
+
+
+	return make_pair(oppwin,oppstrat);
+}
+
+
+
+int main()
+{
+	int n,m;
+
+	cin>>n>>m;
+
+	vector<bool> belongs(n);
+	vector<int> priority(n);
+
+	map<int,vector<int>> next;
+	unordered_set<int> start;
+	vector<int> temp;
+
+	for(int i=0;i<n;i++)
+	{
+		int x;
+		cin>>x;
+		belongs[i]=x;
+		next[i]=temp;
+	}
+
+	for(int i=0;i<n;i++)
+	{
+		int x;
+		cin>>x;
+		priority[i]=x;
+	}
+
+	for(int i=0;i<m;i++)
+	{
+		int x,y;
+		cin>>x>>y;
+		next[x].push_back(y);
+	}
+
+
+
+	//transform(next,mark);
+
+	//attractor(belongs,next,start,0);
+
+	pair< pair<  unordered_set<int>,map<int,int> >,pair<  unordered_set<int>,map<int,int> > > B=winningregion(priority,belongs,next);
+		unordered_set<int> Z0=B.first.first;
+		map <int,int> z0=B.first.second;
+
+		unordered_set<int> Z1=B.second.first;
+		map <int,int> z1=B.second.second;
+
+		cout<<"0s winning region"<<endl;
+		for(auto it=Z0.begin();it!=Z0.end();it++)
+			if(z0.count(*it)>0)
+				cout<<*it<<" strategy-> "<<z0[*it]<<endl;
+			else
+				cout<<*it<<" strategy-> doesn't matter will lose anyway"<<endl;
+
+		cout<<endl<<endl;
+
+		cout<<"1's winning region"<<endl;
+		for(auto it=Z1.begin();it!=Z1.end();it++)
+			if(z1.count(*it)>0)
+				cout<<*it<<" strategy-> "<<z1[*it]<<endl;
+			else
+				cout<<*it<<" strategy-> doesn't matter will lose anyway"<<endl;
+
+	return 0;
+}
